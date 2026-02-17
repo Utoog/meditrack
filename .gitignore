@@ -56,5 +56,6 @@ dkms.conf
 
 .cache
 *.db
+compile_commands.json
 
 build
