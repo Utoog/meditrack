@@ -75,7 +75,7 @@
 #define PROGRAM_NAME "meditrack"
 #define PROGRAM_VERSION_MAJOR 0
 #define PROGRAM_VERSION_MINOR 0
-#define PROGRAM_VERSION_BUILD 5
+#define PROGRAM_VERSION_BUILD 7
 
 static void welcome_print(void)
 {
@@ -152,7 +152,6 @@ static void get_strings_from_callback(
         {
             if (!media_rate) continue;
             media_rate_t media_rate_id = atoi(argv[i]);
-            char media_rate_str[15];
             switch (media_rate_id)
             {
                 case RATE_NO_RATE:
@@ -202,6 +201,7 @@ static void get_numeric_from_callback(
     }
 }
 
+#ifdef Debug
 static void add_test_entries(void)
 {
     db_add_media(MEDIA_MOVIE, "Scott Pilgrim vs. The World", 2011, STATUS_FINISHED, RATE_LIKE);
@@ -215,6 +215,7 @@ static void add_test_entries(void)
     db_add_media(MEDIA_MUSIC_ALBUM, "Somewhere City", 2017, STATUS_FINISHED, RATE_LIKE);
     db_add_media(MEDIA_MUSIC_ALBUM, "Чугунный скороход", 1997, STATUS_DROPPED, RATE_NO_RATE);
 }
+#endif
 
 static int cli_print_media_list_cb(void *data, int argc, char **argv, char **col_name)
 {
@@ -268,15 +269,7 @@ static int cli_print_media_list_cb(void *data, int argc, char **argv, char **col
     return 0;
 }
 
-static int cli_print_single_cb(void* data, int argc, char** argv, char** col_name)
-{
-    (void) data;
-    
-    
-
-    return 0;
-}
-
+#ifdef Debug
 static int cli_print_all_dbg_cb(void *data, int argc, char **argv, char **col_name)
 {
     (void) data;
@@ -297,14 +290,17 @@ static int cli_print_all_dbg_cb(void *data, int argc, char **argv, char **col_na
     
     return 0;
 }
+#endif
 
-void cli_print_help(char *name)
+void cli_print_help(const char *name)
 {
     welcome_print();
     printf( "usage: %s [options]\n"
         "\t arguments:\n"
         "\t-a\tPrint list of all media that is being tracked\n"
-        "\t-s <id>\tPrint info on specific media\n",
+        "\t-s <id>\tPrint info on specific media\n"
+        "\t-n\tCreate new media entry\n"
+        "\t-e <id>\tEdit a media entry\n",
         name
     );
 }
@@ -317,16 +313,21 @@ void cli_handle_flags(int argc, char **argv)
         return;
     }
     int opt;
-
+#ifdef Debug
     while((opt = getopt(argc, argv, "hTas:e:n")) != -1)
+#else
+    while((opt = getopt(argc, argv, "has:e:n")) != -1)
+#endif
     {
         switch (opt)
         {
-            case 'h':
-                cli_print_help(argv[0]);
-                break;
+#ifdef Debug
             case 'T':
                 add_test_entries();
+                break;
+#endif
+            case 'h':
+                cli_print_help(argv[0]);
                 break;
             case 'a':
                 cli_print_media_list();
