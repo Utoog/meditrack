@@ -19,12 +19,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sqlite3.h>
+#include <sys/stat.h>
 
 #include "database.h"
-#include "cli.h"
 
-#define DEFAULT_DB_LOCATION "/.local/share"
-#define MEDITRACK_DB_FILENAME "/meditrack.db"
+#define DEFAULT_DB_LOCATION "/.local/share/meditrack"
+#define MEDITRACK_DB_FILENAME "meditrack.db"
 
 sqlite3* db_sqlite;
 
@@ -43,22 +43,38 @@ static int create_table(void)
     ");";
 
     int status = sqlite3_exec(db_sqlite, sql_create_table, NULL, NULL, &err);
-    if (status) printf("Error: %s\n", err);
+    if (status) printf("Error (%d): %s\n", status, err);
     sqlite3_free(err);
     return status;
 }
 
 int db_init(void)
 {
-    char db_path[1024];
-    strcpy(db_path, "file:");
-    strcat(db_path, getenv("HOME"));
-    strcat(db_path, DEFAULT_DB_LOCATION MEDITRACK_DB_FILENAME);
+    const int db_path_length = 256;
+    char db_path[db_path_length];
+#if 0
+    strncat(db_path, getenv("HOME"), db_path_length);
+    strncat(db_path, DEFAULT_DB_LOCATION, db_path_length);
+    mkdir(db_path, 0755);
+
+    // FIXME: seems like older versions of sqlite have
+    // to include file: prefix
+    // also this whole block of code is terrible
+    strncpy(db_path, "file:", db_path_length);
+    strncat(db_path, getenv("HOME"), db_path_length);
+    strncat(db_path, DEFAULT_DB_LOCATION, db_path_length);
+    strncat(db_path, "/" MEDITRACK_DB_FILENAME, db_path_length);
+#else
+    strncat(db_path, getenv("HOME"), db_path_length);
+    strncat(db_path, DEFAULT_DB_LOCATION, db_path_length);
+    mkdir(db_path, 0755);
+    strncat(db_path, "/" MEDITRACK_DB_FILENAME, db_path_length);
+#endif
     int status = 0;
     status = sqlite3_open(db_path, &db_sqlite);
     if (status)
     {
-        printf("Error opening DB: %s\n", sqlite3_errmsg(db_sqlite));
+        printf("Error opening DB (%d): %s\n", status, sqlite3_errmsg(db_sqlite));
         return -1;
     }
     status = create_table();
