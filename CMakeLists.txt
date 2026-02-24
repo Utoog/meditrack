@@ -5,6 +5,8 @@ file(GLOB_RECURSE SOURCES src/*.c)
 
 include_directories(include)
 
+add_definitions(-DUSE_COLOR)
+
 add_executable(meditrack ${SOURCES})
 
 find_package(SQLite3 REQUIRED)

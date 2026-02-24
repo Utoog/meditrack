@@ -21,81 +21,12 @@
 #include <sqlite3.h>
 
 #include "database.h"
+#include "cli.h"
+
+#define DEFAULT_DB_LOCATION "/.local/share"
+#define MEDITRACK_DB_FILENAME "/meditrack.db"
 
 sqlite3* db_sqlite;
-
-static int db_callback(void* data, int argc, char** argv, char** azColName)
-{
-    (void) data;
-    
-    for (int i = 0; i < argc; i++) {
-        if (!strcmp(azColName[i], "type"))
-        {
-            media_type_t mediatype = atoi(argv[i]);
-            char media_type_str[20];
-            switch (mediatype)
-            {
-                case MEDIA_MOVIE:
-                    strcpy(media_type_str, "Movie");
-                    break;
-                case MEDIA_VIDEOGAME:
-                    strcpy(media_type_str, "Videogame");
-                    break;
-                case MEDIA_TV_SEASON:
-                    strcpy(media_type_str, "TV Season");
-                    break;
-                case MEDIA_MUSIC_ALBUM:
-                    strcpy(media_type_str, "Music Album");
-                    break;
-            }
-            printf("%s = %s\n", azColName[i], media_type_str);
-        }
-        else if (!strcmp(azColName[i], "status"))
-        {
-            media_status_t media_status = atoi(argv[i]);
-            char media_status_str[15];
-            switch (media_status)
-            {
-                case STATUS_PLANNED:
-                    strcpy(media_status_str, "Planned");
-                    break;
-                case STATUS_IN_PROGRESS:
-                    strcpy(media_status_str, "In Progress");
-                    break;
-                case STATUS_FINISHED:
-                    strcpy(media_status_str, "Finished");
-                    break;
-                case STATUS_DROPPED:
-                    strcpy(media_status_str, "Dropped");
-                    break;
-            }
-            printf("%s = %s\n", azColName[i], media_status_str);
-        }
-        else if (!strcmp(azColName[i], "rate"))
-        {
-            media_rate_t media_rate = atoi(argv[i]);
-            char media_rate_str[15];
-            switch (media_rate)
-            {
-                case RATE_NO_RATE:
-                    strcpy(media_rate_str, "-");
-                    break;
-                case RATE_LIKE:
-                    strcpy(media_rate_str, "Liked");
-                    break;
-                case RATE_DISLIKE:
-                    strcpy(media_rate_str, "Didn't like");
-                    break;
-            }
-            printf("%s = %s\n", azColName[i], media_rate_str);
-        }
-        else printf("%s = %s\n", azColName[i], argv[i] ? argv[i] : "-");
-    }
-    
-    printf("\n");
-
-    return 0;
-}
 
 static int create_table(void)
 {
@@ -119,8 +50,12 @@ static int create_table(void)
 
 int db_init(void)
 {
+    char db_path[1024];
+    strcpy(db_path, "file:");
+    strcat(db_path, getenv("HOME"));
+    strcat(db_path, DEFAULT_DB_LOCATION MEDITRACK_DB_FILENAME);
     int status = 0;
-    status = sqlite3_open("example.db", &db_sqlite);
+    status = sqlite3_open(db_path, &db_sqlite);
     if (status)
     {
         printf("Error opening DB: %s\n", sqlite3_errmsg(db_sqlite));
@@ -221,25 +156,25 @@ int db_update_entry(
     return status;
 }
 
-int db_get_all_entries(void)
+int db_get_all_entries(int (*callback)(void*,int,char**,char**))
 {
     char* err;
     int status = 0;
     const char sql_query[] = "SELECT * FROM media;";
-    status = sqlite3_exec(db_sqlite, sql_query, db_callback, 0, &err);
+    status = sqlite3_exec(db_sqlite, sql_query, callback, 0, &err);
     if (status) printf("Error: %s\n", err);
     sqlite3_free(err);
     return status;
 }
 
-int db_get_entry_info(int entry_id)
+int db_get_entry_info(int entry_id, int (*callback)(void*,int,char**,char**))
 {
     char* err;
     int status = 0;
     const char sql_query_format[] = "SELECT * FROM media WHERE id = %d;";
     char sql_query[50];
     sprintf(sql_query, sql_query_format, entry_id);
-    status = sqlite3_exec(db_sqlite, sql_query, db_callback, 0, &err);
+    status = sqlite3_exec(db_sqlite, sql_query, callback, 0, &err);
     if (status) printf("Error: %s\n", err);
     sqlite3_free(err);
     return status;
