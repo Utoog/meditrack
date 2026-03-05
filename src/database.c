@@ -15,6 +15,8 @@
 // with this program; if not, write to the Free Software Foundation, Inc.,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+#include <stdarg.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -22,23 +24,24 @@
 #include <sys/stat.h>
 
 #include "database.h"
+#include "common.h"
 
-#define DEFAULT_DB_LOCATION "/.local/share/meditrack"
-#define MEDITRACK_DB_FILENAME "meditrack.db"
+#define DEFAULT_DB_LOCATION "/.local/share/" PROGRAM_NAME
+#define MEDITRACK_DB_FILENAME PROGRAM_NAME ".db"
 
 sqlite3* db_sqlite;
 
 static int create_table(void)
 {
     char* err;
-    const char* sql_create_table = 
+    const char sql_create_table[] = 
     "CREATE TABLE IF NOT EXISTS media ("
         "id             INTEGER PRIMARY KEY,"
-        "type           INTEGER NOT NULL,"              // 0 - Movie, 1 - VG, 2 - TV Season, 3 - Music Album
+        "type           INTEGER NOT NULL,"              // 0 - Movie, 1 - VG, 2 - TV Series, 3 - Music Album
         "name           TEXT NOT NULL,"
         "year           INTEGER NOT NULL,"
         "status         INTEGER NOT NULL DEFAULT 0,"    // 0 - Planned, 1 - In Progress, 2 - Finished, 3 - Dropped
-        "poster_file    TEXT,"                          // Name of an image that will be in local storage
+        "poster_file    TEXT,"                          // Name of an image that will be in local storage  [TO BE REPLACED BY UUID OF A POSTER]
         "rate           INTEGER NOT NULL DEFAULT 0"     // 0 - Didn't rate, 1 - Liked, 2 - Disliked
     ");";
 
@@ -52,24 +55,12 @@ int db_init(void)
 {
     const int db_path_length = 256;
     char db_path[db_path_length];
-#if 0
-    strncat(db_path, getenv("HOME"), db_path_length);
-    strncat(db_path, DEFAULT_DB_LOCATION, db_path_length);
-    mkdir(db_path, 0755);
 
-    // FIXME: seems like older versions of sqlite have
-    // to include file: prefix
-    // also this whole block of code is terrible
-    strncpy(db_path, "file:", db_path_length);
-    strncat(db_path, getenv("HOME"), db_path_length);
-    strncat(db_path, DEFAULT_DB_LOCATION, db_path_length);
-    strncat(db_path, "/" MEDITRACK_DB_FILENAME, db_path_length);
-#else
-    strncat(db_path, getenv("HOME"), db_path_length);
+    strncpy(db_path, getenv("HOME"), db_path_length);
     strncat(db_path, DEFAULT_DB_LOCATION, db_path_length);
     mkdir(db_path, 0755);
     strncat(db_path, "/" MEDITRACK_DB_FILENAME, db_path_length);
-#endif
+
     int status = 0;
     status = sqlite3_open(db_path, &db_sqlite);
     if (status)
@@ -89,12 +80,12 @@ int db_add_media(
     media_status_t media_status,
     media_rate_t media_rate)
 {
+    const int query_length = 400;
     char *err = 0;
     int status = 0;
-    //  FIXME: string validation
-    const char sql_query_format[] = "INSERT INTO media (type, name, year, status, rate) VALUES (%d, '%s', %d, %d, %d);";
-    char sql_query[400];
-    sprintf(sql_query, sql_query_format, media_type, media_name, media_year, media_status, media_rate);
+    const char sql_query_format[] = "INSERT INTO media (type, name, year, status, rate) VALUES (%d, %Q, %d, %d, %d);";
+    char sql_query[query_length];
+    sqlite3_snprintf(query_length, sql_query, sql_query_format, media_type, media_name, media_year, media_status, media_rate);
     status = sqlite3_exec(db_sqlite, sql_query, 0, 0, &err);
     if (status) printf("Error: %s\n", err);
     sqlite3_free(err);
@@ -103,11 +94,23 @@ int db_add_media(
 
 int db_remove_entry(int entry_id)
 {
+    const int query_length = 50;
     char *err = 0;
     int status = 0;
     const char sql_query_format[] = "DELETE FROM media WHERE id = %d;";
-    char sql_query[40];
-    sprintf(sql_query, sql_query_format, entry_id);
+    char sql_query[query_length];
+    sqlite3_snprintf(query_length, sql_query, sql_query_format, entry_id);
+    status = sqlite3_exec(db_sqlite, sql_query, 0, 0, &err);
+    if (status) printf("Error: %s\n", err);
+    sqlite3_free(err);
+    return status;
+}
+
+int db_purge_everything(void)
+{
+    char *err = 0;
+    int status = 0;
+    const char sql_query[] = "DROP TABLE media;";
     status = sqlite3_exec(db_sqlite, sql_query, 0, 0, &err);
     if (status) printf("Error: %s\n", err);
     sqlite3_free(err);
@@ -116,11 +119,12 @@ int db_remove_entry(int entry_id)
 
 int db_change_status(int entry_id, media_status_t media_status)
 {
+    const int query_length = 50;
     char *err = 0;
     int status = 0;
     const char sql_query_format[] = "UPDATE media SET status = %d WHERE id = %d;";
-    char sql_query[50];
-    sprintf(sql_query, sql_query_format, media_status, entry_id);
+    char sql_query[query_length];
+    sqlite3_snprintf(query_length, sql_query, sql_query_format, media_status, entry_id);
     status = sqlite3_exec(db_sqlite, sql_query, 0, 0, &err);
     if (status) printf("Error: %s\n", err);
     sqlite3_free(err);
@@ -129,11 +133,12 @@ int db_change_status(int entry_id, media_status_t media_status)
 
 int db_change_rating(int entry_id, media_rate_t rate)
 {
+    const int query_length = 50;
     char *err = 0;
     int status = 0;
     const char sql_query_format[] = "UPDATE media SET rate = %d WHERE id = %d;";
-    char sql_query[50];
-    sprintf(sql_query, sql_query_format, rate, entry_id);
+    char sql_query[query_length];
+    sqlite3_snprintf(query_length, sql_query, sql_query_format, rate, entry_id);
     status = sqlite3_exec(db_sqlite, sql_query, 0, 0, &err);
     if (status) printf("Error: %s\n", err);
     sqlite3_free(err);
@@ -148,18 +153,19 @@ int db_update_entry(
     media_status_t media_status,
     media_rate_t media_rate)
 {
+    const int query_length = 400;
     char *err = 0;
     int status = 0;
     const char sql_query_format[] =
-    "UPDATE media SET"
-       "type = %d"
-       "name = '%s'"
-       "year = %d"
-       "status = %d"
-       "rate = %d"
+    "UPDATE media SET "
+       "type = %d, "
+       "name = %Q, "
+       "year = %d, "
+       "status = %d, "
+       "rate = %d "
        "WHERE id = %d;";
-    char sql_query[400];
-    sprintf(sql_query, sql_query_format,
+    char sql_query[query_length];
+    sqlite3_snprintf(query_length, sql_query, sql_query_format,
         media_type,
         media_name,
         media_year,
@@ -167,6 +173,36 @@ int db_update_entry(
         media_rate,
         entry_id);
     status = sqlite3_exec(db_sqlite, sql_query, 0, 0, &err);
+    if (status) printf("Error: %s\n", err);
+    sqlite3_free(err);
+    return status;
+}
+
+int db_update_entry_flexible(unsigned int bitmask, ...)
+{
+    va_list arguments;
+
+    const int query_length = 400;
+    char *err = 0;
+    int status = 0;
+    char sql_query_format[query_length];
+    char sql_query[query_length];
+
+    strcpy(sql_query_format, "UPDATE media SET ");
+    // TODO: fix ','s
+    if (bitmask & BITMASK_MEDIA_TYPE)   strcat(sql_query_format, "type = %d ");
+    if (bitmask & BITMASK_MEDIA_NAME)   strcat(sql_query_format, "name = %Q ");
+    if (bitmask & BITMASK_MEDIA_YEAR)   strcat(sql_query_format, "year = %d ");
+    if (bitmask & BITMASK_MEDIA_STATUS) strcat(sql_query_format, "status = %d ");
+    if (bitmask & BITMASK_MEDIA_RATE)   strcat(sql_query_format, "rate = %d ");
+    strcat(sql_query_format, "WHERE id = %d;");
+
+    va_start(arguments, bitmask);
+    vsprintf(sql_query, sql_query_format, arguments);
+    va_end(arguments);
+
+    status = sqlite3_exec(db_sqlite, sql_query, 0, 0, &err);
+
     if (status) printf("Error: %s\n", err);
     sqlite3_free(err);
     return status;
@@ -185,12 +221,71 @@ int db_get_all_entries(int (*callback)(void*,int,char**,char**))
 
 int db_get_entry_info(int entry_id, int (*callback)(void*,int,char**,char**))
 {
+    const int query_length = 50;
     char* err;
     int status = 0;
     const char sql_query_format[] = "SELECT * FROM media WHERE id = %d;";
-    char sql_query[50];
-    sprintf(sql_query, sql_query_format, entry_id);
+    char sql_query[query_length];
+    sqlite3_snprintf(query_length, sql_query, sql_query_format, entry_id);
     status = sqlite3_exec(db_sqlite, sql_query, callback, 0, &err);
+    if (status) printf("Error: %s\n", err);
+    sqlite3_free(err);
+    return status;
+}
+
+int db_search_media(const char *name, int (*callback)(void*,int,char**,char**))
+{
+    const int query_length = 512;
+    char *err;
+    int status = 0;
+    const char sql_query_format[] =
+    "SELECT * FROM media WHERE name LIKE '%%%q%%';";
+    char sql_query[query_length];
+    sqlite3_snprintf(query_length, sql_query, sql_query_format, name);
+    status = sqlite3_exec(db_sqlite, sql_query, callback, 0, &err);
+    if (status) printf("Error: %s\n", err);
+    sqlite3_free(err);
+    return status;
+}
+
+static int get_string_cb(void *data, int argc, char **argv, char **col_name)
+{
+    (void) argc; (void) col_name;
+    sprintf(data, "%s", argv[0]);
+    return 0;
+}
+
+static int get_int_cb(void *data, int argc, char **argv, char **col_name)
+{
+    (void) argc; (void) col_name;
+    int *integer = data;
+    *integer = atoi(argv[0]);
+    return 0;
+}
+
+int db_get_string_from_id(int media_id, const char *field, char *buffer)
+{
+    const int query_length = 64;
+    char *err;
+    int status = 0;
+    const char sql_query_format[] = "SELECT %q FROM media WHERE id = %d";
+    char sql_query[query_length];
+    sqlite3_snprintf(query_length, sql_query, sql_query_format, field, media_id);
+    status = sqlite3_exec(db_sqlite, sql_query, get_string_cb, buffer, &err);
+    if (status) printf("Error: %s\n", err);
+    sqlite3_free(err);
+    return status;
+}
+
+int db_get_int_from_id(int media_id, const char *field, int *value)
+{
+    const int query_length = 64;
+    char *err;
+    int status = 0;
+    const char sql_query_format[] = "SELECT %q FROM media WHERE id = %d";
+    char sql_query[query_length];
+    sqlite3_snprintf(query_length, sql_query, sql_query_format, field, media_id);
+    status = sqlite3_exec(db_sqlite, sql_query, get_int_cb, value, &err);
     if (status) printf("Error: %s\n", err);
     sqlite3_free(err);
     return status;
