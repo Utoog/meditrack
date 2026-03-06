@@ -185,7 +185,6 @@ int db_edit_entry(
     char tmp_query[tmp_query_length];
     sqlite3_snprintf(tmp_query_length, tmp_query, "WHERE id = %d;", media_id);
     strncat(sql_query, tmp_query, tmp_query_length);
-    printf("%s\n", sql_query);
 
     status = sqlite3_exec(db_sqlite, sql_query, 0, 0, &err);
 

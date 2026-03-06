@@ -18,7 +18,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <errno.h>
 #include <unistd.h>
 
 #include "database.h"
@@ -280,14 +279,15 @@ static void cli_print_version(void)
 static void cli_cmd_add(int argc, char **argv)
 {
     // if not interactive then all -t -n and -y are required
-    if (argc < 2)
+    if (argc < 3)
     {
         printf("print help: %s add -h\n", argv[0]);
         return;
     }
+    int interactive = 0;
     int not_interactive = 0;
     int opt;
-    const char arguments[] = ":ht:n:y:";
+    const char arguments[] = ":ht:n:y:i";
     const int media_name_length = 128;
     media_type_t media_type;
     media_status_t media_status = STATUS_PLANNED;
@@ -327,6 +327,9 @@ static void cli_cmd_add(int argc, char **argv)
                 not_interactive++;
                 media_year = atoi(optarg);
                 break;
+            case 'i':
+                interactive = 1;
+                break;
             case ':':
                 printf("option needs a value\n");
                 return;
@@ -335,15 +338,13 @@ static void cli_cmd_add(int argc, char **argv)
                 return;
         }
     }
-    if (not_interactive)
+    if (interactive && not_interactive > 0)
     {
-        if (not_interactive != 3)
-        {
-            puts("When using non-interactive adding, specifying type, name and year is REQUIRED!");
-            return;
-        }
+        puts("You should use either interactive flag or cli flags but not both");
+        return;
     }
-    else {
+    if (interactive)
+    {
         int status;
         char rating_string[4];
         printf("[0] Movie\n"
@@ -358,8 +359,8 @@ static void cli_cmd_add(int argc, char **argv)
             return;
         }
         printf("Name: ");
-        status = scanf("%127\[^n]", media_name);
-        if (status <= 0)
+        status = scanf(" %127[^\n]", media_name);
+        if (status == EOF)
         {
             printf("Error reading input: %d\n", status);
             return;
@@ -368,14 +369,14 @@ static void cli_cmd_add(int argc, char **argv)
         status = scanf("%d", &media_year);
         if (status <= 0)
         {
-            printf("Error reading input: %d\n", errno);
+            printf("Error reading input: %d\n", status);
             return;
         }
         printf("Status (+ for liked, - for disliked or / for neutral): ");
         status = scanf("%3s", rating_string);
         if (status <= 0)
         {
-            printf("Error reading input: %d\n", errno);
+            printf("Error reading input: %d\n", status);
             return;
         }
         switch (rating_string[0])
@@ -390,7 +391,7 @@ static void cli_cmd_add(int argc, char **argv)
                 media_rating = RATE_NO_RATE;
                 break;
             default:
-                printf("Error reading input: %d\n", errno);
+                printf("Error reading input: %d\n", status);
                 return;
         }
         printf("[0] Planned\n"
@@ -401,13 +402,21 @@ static void cli_cmd_add(int argc, char **argv)
         status = scanf("%d", &media_status);
         if (status <= 0)
         {
-            printf("Error reading input: %d\n", errno);
+            printf("Error reading input: %d\n", status);
             return;
         }
+    }
+    if (!interactive && not_interactive != 3)
+    {
+        puts("When using non-interactive adding, specifying type, name and year is REQUIRED!");
+        return;
     }
     if (!db_add_media(media_type, media_name, media_year, media_status, media_rating))
     {
         puts("Media added succesfully!");
+        // TODO: add a media id retrieval of newly added media
+        // This is just a temporary replacement for showing newly added entry
+        db_search_media(media_name, cli_print_media_list_cb);
     }
     else
     {
@@ -485,6 +494,7 @@ static void cli_cmd_edit(int argc, char **argv)
     if (!db_edit_entry(bitmask, media_id, media_type, media_name, media_year))
     {
         puts("Entry edited successfully");
+        cli_print_single_media(media_id);
     }
     else
     {
@@ -520,12 +530,25 @@ static void cli_cmd_purge(int argc, char **argv)
     {
         if (!db_purge_everything()) puts("Database purged.");
     }
+    else
+    {
+        printf("type \"%s purge -y\" to confirm database purge\n", argv[0]);
+    }
 }
 
 static void cli_cmd_list(int argc, char **argv)
 {
     // TODO: add filters
     (void) argc; (void) argv;
+    if (argc > 2)
+    {
+        if (!strcmp(argv[2], "-h"))
+        {
+            printf("usage: %s list\n", argv[0]);
+            return;
+        }
+        puts("Filters are yet to be implemented.");
+    }
     cli_print_media_list();
 }
 
