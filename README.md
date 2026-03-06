@@ -1,27 +1,30 @@
 # meditrack
 
-<a href="https://www.hannahilea.com/blog/houseplant-programming">
-  <img alt="Static Badge" src="https://img.shields.io/badge/%F0%9F%AA%B4%20Houseplant%20-x?style=flat&amp;label=Project%20type&amp;color=1E1E1D">
-</a>
+Meditrack is a tool to keep track of your finished/planned/abandoned movies, games, tv series and etc.
 
-MediTrack is a tool to keep track of your finished/planned/abandoned movies, games, tv series and etc.
+Program uses sqlite3 for database handling, file should be located at `$HOME/.local/share/meditrack`
 
 # Commands
 
-- add - Create new media entry
-- edit - Edit a media entry (TODO)
-- remove - Remove a media entry
-- list - Print all media entries (filters are WIP)
-- show - Print specific media entry information
-- search - Search media which contains <text> in its name
+- `add` - Create new media entry
+- `edit` - Edit a media entry (TODO)
+- `remove` - Remove a media entry
+- `purge` - Remove every entry from the database
+- `list` - Print all media entries (TODO: filters)
+- `show` - Print specific media entry information
+- `search` - Search media
+
+# TODO
+
+- `status` command to easily change specified media status and rating
 
 # Example
 
 ```
-$ meditrack add -t MV -n "Very Nice Movie" -y 1997
+$ meditrack add -t mv -n "Very Nice Movie" -y 1997
 Media added succesfully!
 $ meditrack list
-[MV] Cool movie (2012) (id: 1)
+[MV] Cool Movie (2012) (id: 1)
 	Status: Dropped		Rating: -
 [MV] Great Movie (1999) (id: 2)
 	Status: Finished		Rating: +

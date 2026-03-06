@@ -24,57 +24,12 @@
 #include "database.h"
 #include "cli.h"
 #include "common.h"
+#include "colors.h"
 
 #define NAME_BUFFSIZE   128
 #define TYPE_BUFFSIZE   24
 #define STATUS_BUFFSIZE 16
 #define RATE_BUFFSIZE STATUS_BUFFSIZE
-
-#ifdef USE_COLOR
-    #define COLOR_BLACK     "\e[0;30m"
-    #define COLOR_RED       "\e[0;31m"
-    #define COLOR_GREEN     "\e[0;32m"
-    #define COLOR_YELLOW    "\e[0;33m"
-    #define COLOR_BLUE      "\e[0;34m"
-    #define COLOR_MAGENTA   "\e[0;35m"
-    #define COLOR_CYAN      "\e[0;36m"
-    #define COLOR_WHITE     "\e[0;37m"
-    #define COLOR_RESET     "\e[0m"
-
-    #define UNDERLINE_WHITE "\e[4;37m"
-
-    #define BG_BLACK        "\e[40m"
-    #define BG_RED          "\e[41m"
-    #define BG_GREEN        "\e[42m"
-    #define BG_YELLOW       "\e[43m"
-    #define BG_BLUE         "\e[44m"
-    #define BG_MAGENTA      "\e[45m"
-    #define BG_CYAN         "\e[46m"
-    #define BG_WHITE        "\e[47m"
-#else
-    #define UNDERLINE_WHITE
-
-    #define COLOR_BLACK
-    #define COLOR_RED
-    #define COLOR_GREEN
-    #define COLOR_YELLOW
-    #define COLOR_BLUE
-    #define COLOR_MAGENTA
-    #define COLOR_CYAN
-    #define COLOR_WHITE
-    #define COLOR_RESET
-
-    #define BG_BLACK
-    #define BG_RED
-    #define BG_GREEN
-    #define BG_YELLOW
-    #define BG_BLUE
-    #define BG_MAGENTA
-    #define BG_CYAN
-    #define BG_WHITE
-#endif
-
-// type, name, year, status, rate
 
 static void get_strings_from_callback(
     int argc, char **argv, char **col_name,
@@ -192,16 +147,16 @@ static void get_numeric_from_callback(
 #ifdef Debug
 static void add_test_entries(void)
 {
-    db_add_media(MEDIA_MOVIE, "Scott Pilgrim vs. The World", 2011, STATUS_FINISHED, RATE_LIKE);
-    db_add_media(MEDIA_MOVIE, "Man on The Moon", 1999, STATUS_FINISHED, RATE_LIKE);
-    db_add_media(MEDIA_MOVIE, "Goodtimes", 2017, STATUS_PLANNED, RATE_NO_RATE);
-    db_add_media(MEDIA_MOVIE, "Silent Hill", 2007, STATUS_DROPPED, RATE_DISLIKE);
-    db_add_media(MEDIA_VIDEOGAME, "Minecraft", 2011, STATUS_IN_PROGRESS, RATE_LIKE);
-    db_add_media(MEDIA_VIDEOGAME, "The Legend of Zelda: Ocarina of Time", 1998, STATUS_IN_PROGRESS, RATE_LIKE);
-    db_add_media(MEDIA_VIDEOGAME, "The Legend of Zelda: Majora''s Mask", 1998, STATUS_PLANNED, RATE_NO_RATE);
-    db_add_media(MEDIA_TV_SERIES, "Better Call Saul (1 Season)", 2016, STATUS_FINISHED, RATE_LIKE);
-    db_add_media(MEDIA_MUSIC_ALBUM, "Somewhere City", 2017, STATUS_FINISHED, RATE_LIKE);
-    db_add_media(MEDIA_MUSIC_ALBUM, "Чугунный скороход", 1997, STATUS_DROPPED, RATE_NO_RATE);
+    db_add_media(MEDIA_MOVIE, "Cool Movie", 2012, STATUS_DROPPED, RATE_DISLIKE);
+    db_add_media(MEDIA_MOVIE, "Great Movie", 1999, STATUS_FINISHED, RATE_LIKE);
+    db_add_media(MEDIA_MOVIE, "IDK Movie", 2017, STATUS_PLANNED, RATE_NO_RATE);
+    db_add_media(MEDIA_MOVIE, "Bad Movie", 2007, STATUS_DROPPED, RATE_DISLIKE);
+    db_add_media(MEDIA_VIDEOGAME, "Awesome Game", 2011, STATUS_IN_PROGRESS, RATE_LIKE);
+    db_add_media(MEDIA_VIDEOGAME, "Awesome Game: Prequel", 1998, STATUS_IN_PROGRESS, RATE_LIKE);
+    db_add_media(MEDIA_VIDEOGAME, "Awesome Game: Prequel Sequel", 1999, STATUS_PLANNED, RATE_NO_RATE);
+    db_add_media(MEDIA_TV_SERIES, "The TV Show", 2016, STATUS_FINISHED, RATE_LIKE);
+    db_add_media(MEDIA_MUSIC_ALBUM, "Some Tunes", 2017, STATUS_FINISHED, RATE_LIKE);
+    db_add_media(MEDIA_MUSIC_ALBUM, "More Tunes", 1997, STATUS_DROPPED, RATE_NO_RATE);
 }
 #endif
 
@@ -299,6 +254,7 @@ static void cli_print_help(const char *name)
         "\tadd <options>\t- Create new media entry\n"
         "\tedit <options>\t- Edit a media entry\n"
         "\tremove <options>\t- Remove a media entry\n"
+        "\tpurge\t\t- Remove everything from the database\n"
         "\tlist <options>\t- Print all media entries\n"
         "\tshow <options>\t- Print specific media entry information\n"
         "\tsearch <text>\t- Search media which contains <text> in its name\n"
@@ -342,9 +298,6 @@ static void cli_cmd_add(int argc, char **argv)
     // TODO: add options to specify status and rating using options
     while ((opt = getopt(argc, argv, arguments)) != -1)
     {
-        // printf("opt: %d\n", opt);
-        // printf("%c: %s\n", optopt, optarg);
-        // sleep(1);
         switch (opt)
         {
             case 'h':
@@ -360,10 +313,10 @@ static void cli_cmd_add(int argc, char **argv)
                 return;
             case 't':
                 not_interactive++;
-                if (!strcmp(optarg, "MV")) media_type = MEDIA_MOVIE;
-                else if (!strcmp(optarg, "VG")) media_type = MEDIA_VIDEOGAME;
-                else if (!strcmp(optarg, "TV")) media_type = MEDIA_TV_SERIES;
-                else if (!strcmp(optarg, "MUS")) media_type = MEDIA_MUSIC_ALBUM;
+                if (!strcmp(optarg, "MV")       || !strcmp(optarg, "mv"))  media_type = MEDIA_MOVIE;
+                else if (!strcmp(optarg, "VG")  || !strcmp(optarg, "vg"))  media_type = MEDIA_VIDEOGAME;
+                else if (!strcmp(optarg, "TV")  || !strcmp(optarg, "tv"))  media_type = MEDIA_TV_SERIES;
+                else if (!strcmp(optarg, "MUS") || !strcmp(optarg, "mus")) media_type = MEDIA_MUSIC_ALBUM;
                 else { printf("Unknown media type: %s\n", optarg); return; }
                 break;
             case 'n':
@@ -386,7 +339,6 @@ static void cli_cmd_add(int argc, char **argv)
     {
         if (not_interactive != 3)
         {
-            printf("not_interactive: %d\n", not_interactive);
             puts("When using non-interactive adding, specifying type, name and year is REQUIRED!");
             return;
         }
@@ -465,16 +417,79 @@ static void cli_cmd_add(int argc, char **argv)
 
 static void cli_cmd_edit(int argc, char **argv)
 {
-    // TODO: **this**
-    // -n <String>  -  Name
-    // -y <Int>     -  Year
-    // -m <Int>     -  Media ID
     if (argc < 3)
     {
         printf("usage: %s edit -h\n", argv[0]);
         return;
     }
-    db_update_entry_flexible(BITMASK_MEDIA_YEAR | BITMASK_MEDIA_STATUS, 2012, STATUS_PLANNED, 1);
+    const char arguments[] = ":i:t:n:y:h";
+    const int media_name_length = 128;
+    int opt;
+    unsigned int bitmask = 0;
+    media_type_t media_type;
+    char media_name[media_name_length];
+    int media_year;
+    int media_id = 0;
+    while ((opt = getopt(argc, argv, arguments)) != -1)
+    {
+        switch (opt)
+        {
+            case 'h':
+                printf("usage: %s edit <options> - Edit a media entry\n"
+                    "options:\n"
+                    "\t-h\t\t- print this message\n"
+                    "\t-i <id>\t\t- Specify ID\n"
+                    "\t-t <type>\t- Specify type of the media: <MV|VG|TV|MUS>\n"
+                    "\t-n <name>\t- Specify name of the media\n"
+                    "\t-y <year>\t- Specify year of the media\n"
+                    "Note: MV - Movie, VG - Videogame, TV - TV Series, MUS - Music album\n",
+                    argv[0]);
+                return;
+            case 't':
+                bitmask |= BITMASK_MEDIA_TYPE;
+                if (!strcmp(optarg, "MV")       || !strcmp(optarg, "mv"))  media_type = MEDIA_MOVIE;
+                else if (!strcmp(optarg, "VG")  || !strcmp(optarg, "vg"))  media_type = MEDIA_VIDEOGAME;
+                else if (!strcmp(optarg, "TV")  || !strcmp(optarg, "tv"))  media_type = MEDIA_TV_SERIES;
+                else if (!strcmp(optarg, "MUS") || !strcmp(optarg, "mus")) media_type = MEDIA_MUSIC_ALBUM;
+                else { printf("Unknown media type: %s\n", optarg); return; }
+                break;
+            case 'n':
+                bitmask |= BITMASK_MEDIA_NAME;
+                strncpy(media_name, optarg, media_name_length);
+                break;
+            case 'y':
+                bitmask |= BITMASK_MEDIA_YEAR;
+                media_year = atoi(optarg);
+                break;
+            case 'i':
+                media_id = atoi(optarg);
+                break;
+            case ':':
+                printf("option needs a value\n");
+                return;
+            case '?':
+                printf("unknown option: %c\n", optopt);
+                return;
+        }
+    }
+    if (!media_id)
+    {
+        printf("Specify media id using: %s edit -i <id> <...>\n", argv[0]);
+        return;
+    }
+    if (!bitmask)
+    {
+        puts("Specify what property do you want to edit!");
+        return;
+    }
+    if (!db_edit_entry(bitmask, media_id, media_type, media_name, media_year))
+    {
+        puts("Entry edited successfully");
+    }
+    else
+    {
+        puts("Error editing media");
+    }
 }
 
 static void cli_cmd_remove(int argc, char **argv)
@@ -517,7 +532,6 @@ static void cli_cmd_list(int argc, char **argv)
 //  Print information about a single entry
 static void cli_cmd_show(int argc, char **argv)
 {
-    // <int>     - Media ID
     if (argc < 3)
     {
         printf("usage: %s show <id>\n", argv[0]);
@@ -534,7 +548,6 @@ static void cli_cmd_search(int argc, char **argv)
         printf("Usage: %s search \"<search query>\"\n", argv[0]);
         return;
     }
-    // <String>  - Search name
     db_search_media(argv[2], cli_print_media_list_cb);
 }
 
@@ -542,12 +555,6 @@ static void cli_cmd_search(int argc, char **argv)
 static void cli_cmd_test(void)
 {
     add_test_entries();
-    // char testbuf[100] = "test string";
-    // db_get_string_from_id(1, "name", testbuf, 100);
-    // printf("%s\n", testbuf);
-    // int testint = 0;
-    // db_get_int_from_id(1, "year", &testint);
-    // printf("%d\n", testint);
 }
 #endif
 

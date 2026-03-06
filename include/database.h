@@ -23,8 +23,6 @@
 #define BITMASK_MEDIA_TYPE   (1 << 0)
 #define BITMASK_MEDIA_NAME   (1 << 1)
 #define BITMASK_MEDIA_YEAR   (1 << 2)
-#define BITMASK_MEDIA_STATUS (1 << 3)
-#define BITMASK_MEDIA_RATE   (1 << 4)
 
 typedef enum {
     MEDIA_MOVIE,
@@ -53,23 +51,19 @@ int db_init(void);
 int db_add_media(media_type_t media_type, const char* media_name, int media_year, media_status_t media_status,  media_rate_t media_rate);
 
 // Remove media entry by its id
-int db_remove_entry(int entry_id);
+int db_remove_entry(int media_id);
 
 //  Remove everything from database
 int db_purge_everything(void);
 
 // Change status of media entry
-int db_change_status(int entry_id, media_status_t media_status);
+int db_change_status(int media_id, media_status_t media_status);
 
 // Change rating of media entry
-int db_change_rating(int entry_id, media_rate_t rate);
+int db_change_rating(int media_id, media_rate_t rate);
 
-// Update all fields of a media entry
-int db_update_entry(int entry_id, media_type_t media_type, const char* media_name, int media_year, media_status_t media_status, media_rate_t media_rate);
-
-// Update fields specified by a bitmask
-// (REQUIRED to place entry_id as the last argument)
-int db_update_entry_flexible(unsigned int bitmask, ...);
+// Update fields of a media entry
+int db_edit_entry(unsigned bitmask, int media_id, media_type_t media_type, const char* media_name, int media_year);
 
 // Request everything from media table
 int db_get_all_entries(int (*callback)(void*,int,char**,char**));
@@ -85,6 +79,10 @@ int db_get_string_from_id(int media_id, const char *field, char *buffer);
 
 // Get decimal value from specific field of an entry
 int db_get_int_from_id(int media_id, const char *field, int *value);
+
+int db_set_media_status(int media_id, media_status_t media_status);
+
+int db_set_media_rating(int media_id, media_rate_t media_rating);
 
 // Close db and free resources
 void db_close(void);
