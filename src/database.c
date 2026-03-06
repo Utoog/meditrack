@@ -296,7 +296,7 @@ int db_set_media_rating(int media_id, media_rate_t media_rating)
     const int query_length = 64;
     char *err;
     int status = 0;
-    const char sql_query_format[] = "UPDATE media SET rating = %d WHERE id = %d;";
+    const char sql_query_format[] = "UPDATE media SET rate = %d WHERE id = %d;";
     char sql_query[query_length];
     sqlite3_snprintf(query_length, sql_query, sql_query_format, media_id, media_rating);
     status = sqlite3_exec(db_sqlite, sql_query, 0, 0, &err);
