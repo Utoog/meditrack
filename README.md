@@ -7,16 +7,12 @@ Program uses sqlite3 for database handling, file should be located at `$HOME/.lo
 # Commands
 
 - `add` - Create new media entry
-- `edit` - Edit a media entry (TODO)
+- `edit` - Edit a media entry
 - `remove` - Remove a media entry
 - `purge` - Remove every entry from the database
-- `list` - Print all media entries (TODO: filters)
+- `list` - Print all media entries (TODO: filters) (just use grep)
 - `show` - Print specific media entry information
 - `search` - Search media
-
-# TODO
-
-- `status` command to easily change specified media status and rating
 
 # Example
 

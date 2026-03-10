@@ -302,9 +302,9 @@ static void cli_cmd_add(int argc, char **argv)
         {
             case 'h':
                 printf("usage: %s add <options> - Add a new media entry,\n"
-                    "when no option is specified, interactive mode is invoked\n"
                     "options:\n"
                     "\t-h\t\t- print this message\n"
+                    "\t-i\t\t- Interactive mode\n"
                     "\t-t <type>\t- Specify type of the media: <MV|VG|TV|MUS>\n"
                     "\t-n <name>\t- Specify name of the media\n"
                     "\t-y <year>\t- Specify year of the media\n"
@@ -431,11 +431,13 @@ static void cli_cmd_edit(int argc, char **argv)
         printf("usage: %s edit -h\n", argv[0]);
         return;
     }
-    const char arguments[] = ":i:t:n:y:h";
+    const char arguments[] = ":i:t:n:y:hs:r:";
     const int media_name_length = 128;
     int opt;
     unsigned int bitmask = 0;
     media_type_t media_type;
+    media_status_t media_status;
+    media_rate_t media_rating;
     char media_name[media_name_length];
     int media_year;
     int media_id = 0;
@@ -451,6 +453,8 @@ static void cli_cmd_edit(int argc, char **argv)
                     "\t-t <type>\t- Specify type of the media: <MV|VG|TV|MUS>\n"
                     "\t-n <name>\t- Specify name of the media\n"
                     "\t-y <year>\t- Specify year of the media\n"
+                    "\t-s <p/i/f/d>\t- Specify status of the media ('P'lanned, 'I'n progress, 'F'inished, 'D'ropped)\n"
+                    "\t-r <+, -, />\t- Specify rating of the media ('+' - Liked, '-' - Disliked)\n"
                     "Note: MV - Movie, VG - Videogame, TV - TV Series, MUS - Music album\n",
                     argv[0]);
                 return;
@@ -473,6 +477,21 @@ static void cli_cmd_edit(int argc, char **argv)
             case 'i':
                 media_id = atoi(optarg);
                 break;
+            case 's':
+                bitmask |= BITMASK_MEDIA_STATUS;
+                if (!strcmp(optarg, "p"))       media_status = STATUS_PLANNED;
+                else if (!strcmp(optarg, "i"))  media_status = STATUS_IN_PROGRESS;
+                else if (!strcmp(optarg, "f"))  media_status = STATUS_FINISHED;
+                else if (!strcmp(optarg, "d"))  media_status = STATUS_DROPPED;
+                else { printf("Unknown status: %s\n", optarg); return; }
+                break;
+            case 'r':
+                bitmask |= BITMASK_MEDIA_RATING;
+                if (!strcmp(optarg, "+"))       media_rating = RATE_LIKE;
+                else if (!strcmp(optarg, "-"))  media_rating = RATE_DISLIKE;
+                else if (!strcmp(optarg, "/"))  media_rating = RATE_NO_RATE;
+                else { printf("Unknown rating: %s\n", optarg); return; }
+                break;
             case ':':
                 printf("option needs a value\n");
                 return;
@@ -491,7 +510,7 @@ static void cli_cmd_edit(int argc, char **argv)
         puts("Specify what property do you want to edit!");
         return;
     }
-    if (!db_edit_entry(bitmask, media_id, media_type, media_name, media_year))
+    if (!db_edit_entry(bitmask, media_id, media_type, media_name, media_year, media_status, media_rating))
     {
         puts("Entry edited successfully");
         cli_print_single_media(media_id);

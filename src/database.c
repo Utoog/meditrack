@@ -150,7 +150,9 @@ int db_edit_entry(
     int media_id,
     media_type_t media_type,
     const char* media_name,
-    int media_year)
+    int media_year,
+    media_status_t media_status,
+    media_rate_t media_rate)
 {
     const int query_length = 400;
     char *err = 0;
@@ -179,6 +181,22 @@ int db_edit_entry(
         const int tmp_query_length = 32;
         char tmp_query[tmp_query_length];
         sqlite3_snprintf(tmp_query_length, tmp_query, "year = %d ", media_year);
+        strncat(sql_query, tmp_query, tmp_query_length);
+        if (bitmask > BITMASK_MEDIA_YEAR) strcat(sql_query, ", ");
+    }
+    if (bitmask & BITMASK_MEDIA_STATUS)
+    {
+        const int tmp_query_length = 32;
+        char tmp_query[tmp_query_length];
+        sqlite3_snprintf(tmp_query_length, tmp_query, "status = %d ", media_status);
+        strncat(sql_query, tmp_query, tmp_query_length);
+        if (bitmask > BITMASK_MEDIA_STATUS) strcat(sql_query, ", ");
+    }
+    if (bitmask & BITMASK_MEDIA_RATING)
+    {
+        const int tmp_query_length = 32;
+        char tmp_query[tmp_query_length];
+        sqlite3_snprintf(tmp_query_length, tmp_query, "rate = %d ", media_rate);
         strncat(sql_query, tmp_query, tmp_query_length);
     }
     const int tmp_query_length = 32;

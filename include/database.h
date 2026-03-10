@@ -23,6 +23,8 @@
 #define BITMASK_MEDIA_TYPE   (1 << 0)
 #define BITMASK_MEDIA_NAME   (1 << 1)
 #define BITMASK_MEDIA_YEAR   (1 << 2)
+#define BITMASK_MEDIA_STATUS (1 << 3)
+#define BITMASK_MEDIA_RATING (1 << 4)
 
 typedef enum {
     MEDIA_MOVIE,
@@ -63,7 +65,7 @@ int db_change_status(int media_id, media_status_t media_status);
 int db_change_rating(int media_id, media_rate_t rate);
 
 // Update fields of a media entry
-int db_edit_entry(unsigned bitmask, int media_id, media_type_t media_type, const char* media_name, int media_year);
+int db_edit_entry(unsigned bitmask, int media_id, media_type_t media_type, const char* media_name, int media_year, media_status_t media_status, media_rate_t media_rate);
 
 // Request everything from media table
 int db_get_all_entries(int (*callback)(void*,int,char**,char**));
